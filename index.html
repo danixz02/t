@@ -22,20 +22,26 @@
             startScreenRecordingButton.disabled = true;
             stopScreenRecordingButton.disabled = false;
             recordedChunks = [];
-            navigator.mediaDevices.getDisplayMedia({ video: true, audio: true })
+            
+            var constraints = { video: { mediaSource: 'screen' } };
+            
+            navigator.mediaDevices.getUserMedia(constraints)
                 .then(function(stream) {
                     screenRecordingVideo.srcObject = stream;
+                    
                     try {
                         mediaRecorder = new MediaRecorder(stream);
                     } catch (e) {
                         console.error('Erro ao criar MediaRecorder:', e);
                         return;
                     }
+                    
                     mediaRecorder.ondataavailable = function(event) {
                         if (event.data.size > 0) {
                             recordedChunks.push(event.data);
                         }
                     };
+                    
                     mediaRecorder.onstop = function() {
                         var blob = new Blob(recordedChunks, { type: 'video/webm' });
                         var url = URL.createObjectURL(blob);
@@ -49,6 +55,7 @@
                             URL.revokeObjectURL(url);
                         }, 100);
                     };
+                    
                     mediaRecorder.start();
                 })
                 .catch(function(error) {
