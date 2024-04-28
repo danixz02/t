@@ -3,145 +3,64 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Webcam</title>
+    <title>Gravação de Tela</title>
 </head>
 <body>
-    <select id="cameraSelect"></select>
-    <br>
-    <button id="toggleButton">Mostrar/Esconder Câmera</button>
-    <br>
-    <video id="webcam" autoplay playsinline style="display:none;"></video>
-    <br>
-    <button id="startRecordingButton">Iniciar Gravação</button>
-    <button id="stopRecordingButton" disabled>Parar Gravação</button>
+    <button id="startScreenRecordingButton">Iniciar Gravação de Tela</button>
+    <button id="stopScreenRecordingButton" disabled>Parar Gravação de Tela</button>
+    
+    <video id="screenRecording" autoplay controls style="display:none;"></video>
     
     <script>
-        // Referência ao elemento select
-        var cameraSelect = document.getElementById('cameraSelect');
-        // Referência ao elemento de vídeo
-        var video = document.getElementById('webcam');
-        // Referência ao botão de alternância
-        var toggleButton = document.getElementById('toggleButton');
-        // Referência aos botões de gravação
-        var startRecordingButton = document.getElementById('startRecordingButton');
-        var stopRecordingButton = document.getElementById('stopRecordingButton');
-        
-        // Variáveis para controle da câmera e da gravação
-        var cameraVisible = false;
+        var startScreenRecordingButton = document.getElementById('startScreenRecordingButton');
+        var stopScreenRecordingButton = document.getElementById('stopScreenRecordingButton');
+        var screenRecordingVideo = document.getElementById('screenRecording');
         var mediaRecorder;
         var recordedChunks = [];
         
-        // Verifica se o navegador suporta a API de mediaDevices
-        if (navigator.mediaDevices && navigator.mediaDevices.enumerateDevices) {
-            // Enumera os dispositivos de mídia disponíveis
-            navigator.mediaDevices.enumerateDevices()
-                .then(function(devices) {
-                    // Filtra apenas os dispositivos de vídeo
-                    var cameras = devices.filter(function(device) {
-                        return device.kind === 'videoinput';
-                    });
-                    
-                    // Adiciona as opções do select com os dispositivos encontrados
-                    cameras.forEach(function(camera, index) {
-                        var option = document.createElement('option');
-                        option.value = camera.deviceId;
-                        option.text = 'Câmera ' + (index + 1);
-                        cameraSelect.appendChild(option);
-                    });
-                    
-                    // Atualiza a fonte de vídeo com a câmera selecionada
-                    cameraSelect.onchange = function() {
-                        var selectedCamera = cameraSelect.value;
-                        var constraints = {
-                            video: { deviceId: { exact: selectedCamera } }
-                        };
-                        if (cameraVisible) {
-                            // Se a câmera estiver visível, atualiza o vídeo com a nova câmera
-                            navigator.mediaDevices.getUserMedia(constraints)
-                                .then(function(stream) {
-                                    video.srcObject = stream;
-                                })
-                                .catch(function(error) {
-                                    console.error('Erro ao acessar a câmera:', error);
-                                });
+        startScreenRecordingButton.onclick = function() {
+            startScreenRecordingButton.disabled = true;
+            stopScreenRecordingButton.disabled = false;
+            recordedChunks = [];
+            navigator.mediaDevices.getDisplayMedia({ video: true, audio: true })
+                .then(function(stream) {
+                    screenRecordingVideo.srcObject = stream;
+                    try {
+                        mediaRecorder = new MediaRecorder(stream);
+                    } catch (e) {
+                        console.error('Erro ao criar MediaRecorder:', e);
+                        return;
+                    }
+                    mediaRecorder.ondataavailable = function(event) {
+                        if (event.data.size > 0) {
+                            recordedChunks.push(event.data);
                         }
                     };
-                    
-                    // Seleciona a primeira câmera por padrão
-                    if (cameras.length > 0) {
-                        var defaultCamera = cameras[0].deviceId;
-                        var constraints = {
-                            video: { deviceId: { exact: defaultCamera } }
-                        };
-                        if (cameraVisible) {
-                            // Se a câmera estiver visível, carrega o vídeo com a primeira câmera
-                            navigator.mediaDevices.getUserMedia(constraints)
-                                .then(function(stream) {
-                                    video.srcObject = stream;
-                                })
-                                .catch(function(error) {
-                                    console.error('Erro ao acessar a câmera:', error);
-                                });
-                        }
-                    } else {
-                        console.error('Nenhuma câmera encontrada.');
-                    }
+                    mediaRecorder.onstop = function() {
+                        var blob = new Blob(recordedChunks, { type: 'video/webm' });
+                        var url = URL.createObjectURL(blob);
+                        var a = document.createElement('a');
+                        a.href = url;
+                        a.download = 'screen_recording.webm';
+                        document.body.appendChild(a);
+                        a.click();
+                        setTimeout(function() {
+                            document.body.removeChild(a);
+                            URL.revokeObjectURL(url);
+                        }, 100);
+                    };
+                    mediaRecorder.start();
                 })
                 .catch(function(error) {
-                    console.error('Erro ao enumerar dispositivos:', error);
+                    console.error('Erro ao capturar a tela:', error);
+                    startScreenRecordingButton.disabled = false;
+                    stopScreenRecordingButton.disabled = true;
                 });
-        } else {
-            console.error('enumerateDevices não é suportado neste navegador.');
-        }
-        
-        // Função para alternar a visibilidade da câmera
-        toggleButton.onclick = function() {
-            cameraVisible = !cameraVisible;
-            if (cameraVisible) {
-                // Se a câmera estiver visível, exibe o vídeo
-                video.style.display = 'block';
-            } else {
-                // Se a câmera estiver invisível, oculta o vídeo
-                video.style.display = 'none';
-            }
         };
         
-        // Função para iniciar a gravação
-        startRecordingButton.onclick = function() {
-            startRecordingButton.disabled = true;
-            stopRecordingButton.disabled = false;
-            recordedChunks = [];
-            try {
-                mediaRecorder = new MediaRecorder(video.srcObject);
-            } catch (e) {
-                console.error('Erro ao criar MediaRecorder:', e);
-                return;
-            }
-            mediaRecorder.ondataavailable = function(event) {
-                if (event.data.size > 0) {
-                    recordedChunks.push(event.data);
-                }
-            };
-            mediaRecorder.onstop = function() {
-                var blob = new Blob(recordedChunks, { type: 'video/webm' });
-                var url = URL.createObjectURL(blob);
-                var a = document.createElement('a');
-                a.href = url;
-                a.download = 'recording.webm';
-                document.body.appendChild(a);
-                a.click();
-                setTimeout(function() {
-                    document.body.removeChild(a);
-                    URL.revokeObjectURL(url);
-                }, 100);
-            };
-            mediaRecorder.start();
-        };
-        
-        // Função para parar a gravação
-        stopRecordingButton.onclick = function() {
-            startRecordingButton.disabled = false;
-            stopRecordingButton.disabled = true;
+        stopScreenRecordingButton.onclick = function() {
+            startScreenRecordingButton.disabled = false;
+            stopScreenRecordingButton.disabled = true;
             mediaRecorder.stop();
         };
     </script>
