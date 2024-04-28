@@ -8,13 +8,20 @@
 <body>
     <select id="cameraSelect"></select>
     <br>
-    <p> Olá, Mundo!!</p>
+    <button id="toggleButton">Mostrar/Esconder Câmera</button>
+    <br>
+    <video id="webcam" autoplay playsinline style="display:none;"></video>
     
     <script>
         // Referência ao elemento select
         var cameraSelect = document.getElementById('cameraSelect');
         // Referência ao elemento de vídeo
         var video = document.getElementById('webcam');
+        // Referência ao botão de alternância
+        var toggleButton = document.getElementById('toggleButton');
+        
+        // Variável para controlar o estado da câmera
+        var cameraVisible = false;
         
         // Verifica se o navegador suporta a API de mediaDevices
         if (navigator.mediaDevices && navigator.mediaDevices.enumerateDevices) {
@@ -40,13 +47,16 @@
                         var constraints = {
                             video: { deviceId: { exact: selectedCamera } }
                         };
-                        navigator.mediaDevices.getUserMedia(constraints)
-                            .then(function(stream) {
-                                video.srcObject = stream;
-                            })
-                            .catch(function(error) {
-                                console.error('Erro ao acessar a câmera:', error);
-                            });
+                        if (cameraVisible) {
+                            // Se a câmera estiver visível, atualiza o vídeo com a nova câmera
+                            navigator.mediaDevices.getUserMedia(constraints)
+                                .then(function(stream) {
+                                    video.srcObject = stream;
+                                })
+                                .catch(function(error) {
+                                    console.error('Erro ao acessar a câmera:', error);
+                                });
+                        }
                     };
                     
                     // Seleciona a primeira câmera por padrão
@@ -55,13 +65,16 @@
                         var constraints = {
                             video: { deviceId: { exact: defaultCamera } }
                         };
-                        navigator.mediaDevices.getUserMedia(constraints)
-                            .then(function(stream) {
-                                video.srcObject = stream;
-                            })
-                            .catch(function(error) {
-                                console.error('Erro ao acessar a câmera:', error);
-                            });
+                        if (cameraVisible) {
+                            // Se a câmera estiver visível, carrega o vídeo com a primeira câmera
+                            navigator.mediaDevices.getUserMedia(constraints)
+                                .then(function(stream) {
+                                    video.srcObject = stream;
+                                })
+                                .catch(function(error) {
+                                    console.error('Erro ao acessar a câmera:', error);
+                                });
+                        }
                     } else {
                         console.error('Nenhuma câmera encontrada.');
                     }
@@ -72,6 +85,18 @@
         } else {
             console.error('enumerateDevices não é suportado neste navegador.');
         }
+        
+        // Função para alternar a visibilidade da câmera
+        toggleButton.onclick = function() {
+            cameraVisible = !cameraVisible;
+            if (cameraVisible) {
+                // Se a câmera estiver visível, exibe o vídeo
+                video.style.display = 'block';
+            } else {
+                // Se a câmera estiver invisível, oculta o vídeo
+                video.style.display = 'none';
+            }
+        };
     </script>
 </body>
 </html>
