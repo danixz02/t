@@ -6,25 +6,71 @@
     <title>Webcam</title>
 </head>
 <body>
+    <select id="cameraSelect"></select>
+    <br>
     <video id="webcam" autoplay playsinline></video>
     
     <script>
+        // Referência ao elemento select
+        var cameraSelect = document.getElementById('cameraSelect');
+        // Referência ao elemento de vídeo
+        var video = document.getElementById('webcam');
+        
         // Verifica se o navegador suporta a API de mediaDevices
-        if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
-            // Solicita acesso à câmera do dispositivo
-            navigator.mediaDevices.getUserMedia({ video: true })
-                .then(function(stream) {
-                    // Referencia o elemento de vídeo
-                    var video = document.getElementById('webcam');
-                    // Define o fluxo de mídia como a origem do vídeo
-                    video.srcObject = stream;
+        if (navigator.mediaDevices && navigator.mediaDevices.enumerateDevices) {
+            // Enumera os dispositivos de mídia disponíveis
+            navigator.mediaDevices.enumerateDevices()
+                .then(function(devices) {
+                    // Filtra apenas os dispositivos de vídeo
+                    var cameras = devices.filter(function(device) {
+                        return device.kind === 'videoinput';
+                    });
+                    
+                    // Adiciona as opções do select com os dispositivos encontrados
+                    cameras.forEach(function(camera, index) {
+                        var option = document.createElement('option');
+                        option.value = camera.deviceId;
+                        option.text = 'Câmera ' + (index + 1);
+                        cameraSelect.appendChild(option);
+                    });
+                    
+                    // Atualiza a fonte de vídeo com a câmera selecionada
+                    cameraSelect.onchange = function() {
+                        var selectedCamera = cameraSelect.value;
+                        var constraints = {
+                            video: { deviceId: { exact: selectedCamera } }
+                        };
+                        navigator.mediaDevices.getUserMedia(constraints)
+                            .then(function(stream) {
+                                video.srcObject = stream;
+                            })
+                            .catch(function(error) {
+                                console.error('Erro ao acessar a câmera:', error);
+                            });
+                    };
+                    
+                    // Seleciona a primeira câmera por padrão
+                    if (cameras.length > 0) {
+                        var defaultCamera = cameras[0].deviceId;
+                        var constraints = {
+                            video: { deviceId: { exact: defaultCamera } }
+                        };
+                        navigator.mediaDevices.getUserMedia(constraints)
+                            .then(function(stream) {
+                                video.srcObject = stream;
+                            })
+                            .catch(function(error) {
+                                console.error('Erro ao acessar a câmera:', error);
+                            });
+                    } else {
+                        console.error('Nenhuma câmera encontrada.');
+                    }
                 })
                 .catch(function(error) {
-                    // Manipula erros
-                    console.error('Erro ao acessar a câmera:', error);
+                    console.error('Erro ao enumerar dispositivos:', error);
                 });
         } else {
-            console.error('getUserMedia não é suportado neste navegador.');
+            console.error('enumerateDevices não é suportado neste navegador.');
         }
     </script>
 </body>
