@@ -10,7 +10,10 @@
     <br>
     <button id="toggleButton">Mostrar/Esconder Câmera</button>
     <br>
-   <video id="webcam" autoplay playsinline></video>
+    <video id="webcam" autoplay playsinline style="display:none;"></video>
+    <br>
+    <button id="startRecordingButton" disabled>Iniciar Gravação</button>
+    <button id="stopRecordingButton" disabled>Parar Gravação</button>
     
     <script>
         // Referência ao elemento select
@@ -19,9 +22,14 @@
         var video = document.getElementById('webcam');
         // Referência ao botão de alternância
         var toggleButton = document.getElementById('toggleButton');
+        // Referência aos botões de gravação
+        var startRecordingButton = document.getElementById('startRecordingButton');
+        var stopRecordingButton = document.getElementById('stopRecordingButton');
         
-        // Variável para controlar o estado da câmera
+        // Variáveis para controle da câmera e da gravação
         var cameraVisible = false;
+        var mediaRecorder;
+        var recordedChunks = [];
         
         // Verifica se o navegador suporta a API de mediaDevices
         if (navigator.mediaDevices && navigator.mediaDevices.enumerateDevices) {
@@ -96,6 +104,45 @@
                 // Se a câmera estiver invisível, oculta o vídeo
                 video.style.display = 'none';
             }
+        };
+        
+        // Função para iniciar a gravação
+        startRecordingButton.onclick = function() {
+            startRecordingButton.disabled = true;
+            stopRecordingButton.disabled = false;
+            recordedChunks = [];
+            try {
+                mediaRecorder = new MediaRecorder(video.srcObject);
+            } catch (e) {
+                console.error('Erro ao criar MediaRecorder:', e);
+                return;
+            }
+            mediaRecorder.ondataavailable = function(event) {
+                if (event.data.size > 0) {
+                    recordedChunks.push(event.data);
+                }
+            };
+            mediaRecorder.onstop = function() {
+                var blob = new Blob(recordedChunks, { type: 'video/webm' });
+                var url = URL.createObjectURL(blob);
+                var a = document.createElement('a');
+                a.href = url;
+                a.download = 'recording.webm';
+                document.body.appendChild(a);
+                a.click();
+                setTimeout(function() {
+                    document.body.removeChild(a);
+                    URL.revokeObjectURL(url);
+                }, 100);
+            };
+            mediaRecorder.start();
+        };
+        
+        // Função para parar a gravação
+        stopRecordingButton.onclick = function() {
+            startRecordingButton.disabled = false;
+            stopRecordingButton.disabled = true;
+            mediaRecorder.stop();
         };
     </script>
 </body>
