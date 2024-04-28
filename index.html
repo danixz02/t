@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Webcam</title>
+</head>
+<body>
+    <video id="webcam" autoplay playsinline></video>
+    
+    <script>
+        // Verifica se o navegador suporta a API de mediaDevices
+        if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+            // Solicita acesso à câmera do dispositivo
+            navigator.mediaDevices.getUserMedia({ video: true })
+                .then(function(stream) {
+                    // Referencia o elemento de vídeo
+                    var video = document.getElementById('webcam');
+                    // Define o fluxo de mídia como a origem do vídeo
+                    video.srcObject = stream;
+                })
+                .catch(function(error) {
+                    // Manipula erros
+                    console.error('Erro ao acessar a câmera:', error);
+                });
+        } else {
+            console.error('getUserMedia não é suportado neste navegador.');
+        }
+    </script>
+</body>
+</html>
